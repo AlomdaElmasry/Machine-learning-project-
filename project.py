@@ -21,7 +21,7 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression,SGDClassifier
-
+from sklearn.pipeline import Pipeline
 
 
 #load data in dataframe
@@ -99,8 +99,8 @@ preprocessed_data=preparedata(database)
 #Extract Feature
 
 def featurExtraction(data):
-    vectorizer=TfidfVectorizer(min_df=10,max_df=.75,ngram_range=(1,3))
-    tfidf_data=vectorizer.fit_transform(data)
+    tfidf_transformer=TfidfTransformer(min_df=10,max_df=.75,ngram_range=(1,3))
+    tfidf_data=tfidf_transformer.fit_transform(data)
     return tfidf_data
 
 
@@ -108,11 +108,20 @@ def featurExtraction(data):
     
 def learning(clf,x,y):
     x_train,x_test,y_train,y_test=\
-    cross_validation.train_test_split(x,y,test_size=.4,random_state=500)
-    
-    
-    classifer=clf()
-    classifer.fit(x_train,y_train)
+    cross_validation.train_test_split(x,y,test_size=.97,random_state=500)
+    text_clf = Pipeline([('vect', CountVectorizer()),
+                     ('tfidf', TfidfTransformer()),
+                     ('clf', clf(loss='hinge', penalty='l2',
+                                           alpha=1e-3, random_state=42,
+                                           max_iter=5, tol=None)),
+    ])
+    classifer =text_clf.fit(x_train,y_train)
+    new_tweet=["adsl !!!!!!"]
+    X_new_counts = count_vect.transform(new_tweet)
+    X_new_tfidf = tfidf_transformer.transform(X_new_counts)
+    New_predicted = clf.predict(X_new_tfidf)
+    for doc, category in zip(docs_new, New_predicted):
+        print('%r => %s' % (doc, y_train.target_names[category]))
     predict=cross_validation.cross_val_predict(classifer,x_test,y_test,cv=20)
     scores=cross_validation.cross_val_score(classifer,x_test,y_test,cv=20)
     print(scores)
@@ -129,7 +138,7 @@ def main(clf):
     learning(clf,tfidf_data,target)
     
         
-main(NuSVC)
+main(SGDClassifier)
 
 
 
